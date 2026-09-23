@@ -230,6 +230,21 @@ binsplit split -i secret.mp4 -s 500M -password "我的密码"
 binsplit merge -i secret.mp4.parts -password "我的密码"
 ```
 
+**在命令行传入密码**：
+```
+# 安全，不括也行（纯字母数字）
+binsplit split -i secret.mp4 -s 500M -password abc123
+
+# 必须括（含空格）
+binsplit split -i secret.mp4 -s 500M -password "my secret pwd"
+
+# 含双引号本身、$、反引号或\时必须用单引号
+binsplit split -i secret.mp4 -s 500M -password '$3cret'
+
+# 含单引号本身时必须用双引号
+binsplit split -i secret.mp4 -s 500M -password "it's mine"
+```
+
 **从密码文件读取**：多次加密分割/合并时，可以把密码保存在文本文件中，用 `-password-file` 读取：
 
 ```
