@@ -20,7 +20,7 @@ import (
 )
 
 // 版本号
-const Version = "1.6.0"
+const Version = "1.0.0"
 
 func main() {
     // 如果没有提供任何参数,打印用法并退出
