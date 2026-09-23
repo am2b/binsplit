@@ -47,6 +47,8 @@ func mergeDirectory(splitDir string, outputDir string, workers int, password []b
 
     fmt.Printf("正在合并: %s\n", splitDir)
 
+    fmt.Println("---")
+
     // 打印清单文件中的软件版本信息(合并出错时,用户可据此选择正确的软件版本重试)
     creator := manifest.ToolName
     if creator == "" {
@@ -64,6 +66,7 @@ func mergeDirectory(splitDir string, outputDir string, workers int, password []b
         }
     } else if manifest.Version != "" {
         fmt.Printf("当前软件: binsplit %s\n", Version)
+        fmt.Println("---")
     }
 
     fmt.Printf("原始文件名: %s\n", manifest.OriginalName)
