@@ -268,6 +268,11 @@ func splitFile(srcPath string, outputRoot string, ratios []float64, targetSize i
     close(resultCh)
     elapsed := time.Since(startTime)
 
+    // 正常路径提前收尾(画最终帧 + 换行)
+    prog.finish()
+
+    fmt.Println()
+
     // 检查总 SHA256 计算是否出错
     if sha256Err != nil {
         return cleanup(fmt.Errorf("计算原文件 SHA256 失败: %w", sha256Err))

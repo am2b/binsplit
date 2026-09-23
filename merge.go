@@ -148,7 +148,7 @@ func mergeDirectory(splitDir string, outputDir string, workers int, password []b
 
     mergedSHA256, err := mergePartsToFile(splitDir, manifest.Parts, outputPath, decKey, prog)
 
-    prog.finish()
+    prog.stop()
 
     if err != nil {
         // 合并失败时删除不完整的输出文件
@@ -378,16 +378,27 @@ func mergePartsToFile(splitDir string, parts []PartInfo, outputPath string, key 
                 part.Index, part.Size, written)
         }
 
+        // 分片拷贝完成:主动渲染精确进度帧(done 已包含本分片),
+        // 再用换行定格本行,避免显示后台刷新协程的过期帧(如 99.7%)
+        if prog != nil {
+            prog.render()
+        }
+
         // 打印进度
         fmt.Printf("  已合并分片 %d/%d (%s)\n", i+1, len(parts), part.FileName)
+        // 最后一个分片完成后立即停止后台刷新协程,防止后续Sync/SHA计算期间再画出多余帧
+        if i == len(parts)-1 && prog != nil {
+            prog.stop()
+        }
     }
 
     // 刷新输出文件到磁盘
+    fmt.Println("正在将合并结果同步到磁盘...")
     if err := outputFile.Sync(); err != nil {
-        fmt.Printf("警告: 输出文件同步到磁盘失败: %v\n", err)
+        return "", fmt.Errorf("输出文件同步到磁盘失败: %w", err)
     }
 
-    // 获取最终的 SHA256(哈希结果转为十六进制字符串)
+    // 获取最终的SHA256(哈希结果转为十六进制字符串)
     return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 

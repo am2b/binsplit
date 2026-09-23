@@ -69,13 +69,17 @@ func (p *progress) start() {
 }
 
 // finish:停止刷新并输出最终状态与换行
+// 修改后（progress.go）
 func (p *progress) finish() {
     if !p.enabled {
         return
     }
-    p.stopOnce.Do(func() { close(p.stopCh) })
-    p.render()
-    fmt.Fprintln(p.writer)
+    p.stopOnce.Do(func() {
+        close(p.stopCh)
+        // 全部收进 Do:第一次执行,以后任何调用都是空操作
+        p.render()
+        fmt.Fprintln(p.writer)
+    })
 }
 
 // render:重绘当前进度条
@@ -125,4 +129,14 @@ func (c *countingWriter) Write(b []byte) (int, error) {
         c.p.add(int64(n))
     }
     return n, err
+}
+
+// stop:停止后台刷新协程,但不渲染最终帧,不输出换行
+// 用于"每个分片完成时已主动渲染精确帧"的场景(merge 路径),避免finish()再渲染一次导致冗余的进度条行
+// 与finish共用stopOnce:先stop后finish或反之,都不会重复渲染
+func (p *progress) stop() {
+    if !p.enabled {
+        return
+    }
+    p.stopOnce.Do(func() { close(p.stopCh) })
 }
