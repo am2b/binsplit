@@ -292,7 +292,6 @@ func splitFile(srcPath string, outputRoot string, ratios []float64, targetSize i
     manifest := &Manifest{
         ToolName:       "binsplit",
         Version:        Version,
-        FormatVersion:  manifestFormatVersion,
         Encrypted:      encrypted,
         Cipher:         cipherName,
         KDF:            kdfName,

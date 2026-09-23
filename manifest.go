@@ -42,7 +42,6 @@ type PartInfo struct {
 type Manifest struct {
     ToolName       string     // 创建本清单的工具名称(binsplit)
     Version        string     // 创建本清单的软件版本号(合并出错时可据此选择正确的软件版本)
-    FormatVersion  int        // 清单文件格式版本号(用于未来格式兼容性检查)
     Encrypted      bool       // 分片是否加密
     Cipher         string     // 加密算法(如AES-256-GCM)
     KDF            string     // 密钥派生算法(如scrypt)
@@ -58,11 +57,6 @@ type Manifest struct {
     Parts          []PartInfo // 分片信息列表(按顺序排列)
 }
 
-// manifestFormatVersion:清单文件格式版本号
-// 该版本号独立于软件版本:只有清单的"内容格式"发生不兼容变化时才递增
-// 合并时若清单格式版本高于当前程序支持的版本,会拒绝合并并提示使用创建版本
-const manifestFormatVersion = 1
-
 const (
     // 区块名
     sectionSoftwareInfo = "软件信息"
@@ -72,7 +66,6 @@ const (
     // 键名
     keyTool          = "工具"
     keyVersion       = "版本"
-    keyFormatVersion = "格式版本"
     keyFileName      = "文件名"
     keyFileSize      = "文件大小"
     keySHA256        = "SHA256"
@@ -189,7 +182,6 @@ func writeManifest(dir string, manifest *Manifest) error {
     fmt.Fprintln(writer, "["+sectionSoftwareInfo+"]")
     fmt.Fprintf(writer, "%s%s%s\n", keyTool, kvSeparator, manifest.ToolName)
     fmt.Fprintf(writer, "%s%s%s\n", keyVersion, kvSeparator, manifest.Version)
-    fmt.Fprintf(writer, "%s%s%d\n", keyFormatVersion, kvSeparator, manifest.FormatVersion)
     fmt.Fprintln(writer)
 
     // 写入原始文件信息区块
@@ -312,12 +304,6 @@ func readManifest(dir string) (*Manifest, error) {
                     manifest.ToolName = value
                 case keyVersion:
                     manifest.Version = value
-                case keyFormatVersion:
-                    fv, err := strconv.Atoi(value)
-                    if err != nil {
-                        return nil, fmt.Errorf("清单文件中格式版本无效: %s", value)
-                    }
-                    manifest.FormatVersion = fv
                 }
             }
         case sectionOriginalInfo:
@@ -419,12 +405,6 @@ func readManifest(dir string) (*Manifest, error) {
         return nil, fmt.Errorf("清单文件中没有分片信息")
     }
 
-    // 深度校验(提高健壮性,防止损坏/被篡改的清单造成数据错误)
-    // 校验清单格式版本:若清单由更高格式版本的工具创建,当前程序可能无法正确解析,必须拒绝合并并提示使用创建版本,避免数据无法恢复
-    if manifest.FormatVersion > manifestFormatVersion {
-        return nil, fmt.Errorf("清单文件的格式版本(%d)高于当前程序支持的版本(%d),该清单由更新版本的 %s %s 创建,请改用对应的 binsplit 版本合并,以免数据无法恢复",
-            manifest.FormatVersion, manifestFormatVersion, manifest.ToolName, manifest.Version)
-    }
     // 校验原始文件 SHA256 格式(64 位十六进制)
     if len(manifest.OriginalSHA256) != 64 || !isHexString(manifest.OriginalSHA256) {
         return nil, fmt.Errorf("清单文件中原始文件 SHA256 格式无效: %s", manifest.OriginalSHA256)
